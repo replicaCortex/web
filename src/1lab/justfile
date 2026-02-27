@@ -1,0 +1,11 @@
+run: up ping down
+
+up:
+    docker compose up -d
+
+down:
+    docker compose down
+
+ping:
+    sleep 5
+    curl --location 'http://localhost:4200/info' | jq
