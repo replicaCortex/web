@@ -6,7 +6,8 @@ pkgs.mkShell {
     uv
   ];
 
+  LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:${pkgs.stdenv.cc.cc.lib.outPath}/lib:$LD_LIBRARY_PATH";
+
   shellHook = "
-  source .venv/bin/activate.fish
   ";
 }
