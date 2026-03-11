@@ -1,11 +1,15 @@
-run: up ping down
+alias up := docker-up
+alias down := docker-down
+alias db := docker-build
 
-up:
-    docker compose up -d
+run:
+    uv run main.py
 
-down:
+docker-up:
+    docker compose up -d 
+
+docker-down:
     docker compose down
 
-ping:
-    sleep 5
-    curl --location 'http://localhost:4200/fuckyou' | jq
+docker-build:
+    docker compose up -d --build
