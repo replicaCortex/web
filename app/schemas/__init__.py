@@ -1,3 +1,21 @@
-from app.schemas.user import UserCreate, UserRead, UserUpdate
+# app/schemas/__init__.py
 
-__all__ = ["UserRead", "UserUpdate", "UserCreate"]
+from app.schemas.user import (
+    PaginatedResponse,
+    PaginationMeta,
+    PaginationParams,
+    UserCreate,
+    UserRead,
+    UserUpdate,
+    UserUpdateFull,
+)
+
+__all__ = [
+    "UserCreate",
+    "UserRead",
+    "UserUpdate",
+    "UserUpdateFull",
+    "PaginationParams",
+    "PaginatedResponse",
+    "PaginationMeta",
+]

@@ -10,4 +10,9 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
-CMD ["uv", "run", "main.py"]
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+EXPOSE 4200
+
+CMD ["./entrypoint.sh"]
