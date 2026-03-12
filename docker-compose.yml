@@ -30,6 +30,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       PORT: 4200
+      USE_SQLITE: 0
     ports:
       - "4200:4200"
     depends_on:
