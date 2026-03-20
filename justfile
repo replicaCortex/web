@@ -12,7 +12,6 @@ generate_migration: clear_migration
     uv run alembic revision --autogenerate -m "create users table"
 
 clear_migration:
-    -rm ./app.db
     -rm -rf alembic/versions/
 
 # --- DOCKER ---
@@ -23,5 +22,5 @@ docker-up:
 docker-down:
     docker compose down
 
-docker-build:
+docker-build: docker-down
     docker compose up -d --build
