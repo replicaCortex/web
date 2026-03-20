@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 
-from app.models import User
 from sqlalchemy.orm import Session
 
+from app.models import User
 from app.schemas import UserCreate, UserUpdate
 
 
@@ -11,7 +11,6 @@ class UserRepository:
         self.db = db
 
     def _active(self):
-        """Только не удалённые записи"""
         return self.db.query(User).filter(User.deleted_at.is_(None))
 
     def create(self, data: UserCreate) -> User:

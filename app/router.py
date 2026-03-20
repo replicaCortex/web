@@ -15,7 +15,7 @@ def get_repo(db: Session = Depends(get_db)) -> UserRepository:
 
 @router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def create_user(data: UserCreate, repo: UserRepository = Depends(get_repo)):
-    """Создать пользователя"""
+    """CREATE"""
     try:
         return repo.create(data)
     except IntegrityError:
@@ -31,7 +31,7 @@ def get_users(
     limit: int = Query(10, ge=1, le=100),
     repo: UserRepository = Depends(get_repo),
 ):
-    """Получить список с пагинацией"""
+    """ALL"""
     offset = (page - 1) * limit
     users, total = repo.get_all(offset, limit)
     return PaginatedUsers.create(users, total, page, limit)
@@ -39,7 +39,7 @@ def get_users(
 
 @router.get("/{user_id}", response_model=UserRead)
 def get_user(user_id: int, repo: UserRepository = Depends(get_repo)):
-    """Получить по ID"""
+    """GET BY ID"""
     user = repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
@@ -50,7 +50,7 @@ def get_user(user_id: int, repo: UserRepository = Depends(get_repo)):
 def update_user_full(
     user_id: int, data: UserCreate, repo: UserRepository = Depends(get_repo)
 ):
-    """Полное обновление (PUT)"""
+    """PUT"""
     user = repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
@@ -64,7 +64,7 @@ def update_user_full(
 def update_user_partial(
     user_id: int, data: UserUpdate, repo: UserRepository = Depends(get_repo)
 ):
-    """Частичное обновление (PATCH)"""
+    """PATCH"""
     user = repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
@@ -76,7 +76,7 @@ def update_user_partial(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int, repo: UserRepository = Depends(get_repo)):
-    """Мягкое удаление (Soft Delete)"""
+    """DELETE"""
     user = repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
