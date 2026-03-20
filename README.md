@@ -255,7 +255,3 @@ docker exec -it wp_labs_db psql -U student -d wp_labs
 - Alembic
 - Docker & Docker Compose
 - Pydantic
-
-```
-
-```
