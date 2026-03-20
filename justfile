@@ -3,7 +3,7 @@ alias down := docker-down
 alias db := docker-build
 
 run:
-    uv run uvicorn app.main:app --reload --port 4200
+    uv run uvicorn app.main:app --reload --port 8000
 
 create_db: generate_migration
     uv run alembic upgrade head
@@ -22,5 +22,5 @@ docker-up:
 docker-down:
     docker compose down
 
-docker-build: docker-down
+docker-build: create_db docker-down
     docker compose up -d --build

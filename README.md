@@ -208,9 +208,6 @@ alembic downgrade -1
 ### Локальный запуск (без Docker)
 
 ```bash
-# Установить зависимости
-pip install -r requirements.txt
-
 # Настроить переменные окружения
 export DB_HOST=localhost
 export DB_USER=student

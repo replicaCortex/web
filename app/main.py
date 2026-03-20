@@ -26,4 +26,3 @@ def health():
 
 if ENVIRONMENT == "production":
     app.docs_url = None
-    app.redoc_url = None
