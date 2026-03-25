@@ -1,15 +1,49 @@
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.repository import UserRepository
 from app.schemas import PaginatedUsers, UserCreate, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+# Общие примеры ошибок
+_401 = {
+    "description": "Не авторизован",
+    "content": {"application/json": {"example": {"detail": "Не авторизован"}}},
+}
+_403 = {
+    "description": "Нет доступа",
+    "content": {
+        "application/json": {"example": {"detail": "Нет доступа к этому ресурсу"}}
+    },
+}
+_404 = {
+    "description": "Не найден",
+    "content": {"application/json": {"example": {"detail": "Пользователь не найден"}}},
+}
+_409 = {
+    "description": "Конфликт данных",
+    "content": {
+        "application/json": {
+            "example": {
+                "detail": "Пользователь с таким username или email уже существует"
+            }
+        }
+    },
+}
+
+_user_example = {
+    "id": 1,
+    "username": "john_doe",
+    "email": "john@example.com",
+    "os": "linux",
+    "totaltime": 100,
+    "created_at": "2024-01-15T10:30:00+00:00",
+    "updated_at": "2024-01-15T10:30:00+00:00",
+}
 
 
 def get_repo(db: Session = Depends(get_db)) -> UserRepository:
@@ -21,97 +55,54 @@ def get_repo(db: Session = Depends(get_db)) -> UserRepository:
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
     summary="Создать пользователя",
-    description="Создает нового пользователя с указанными данными",
+    description="Создаёт нового пользователя. Требует авторизации.",
     responses={
         201: {
-            "description": "Пользователь успешно создан",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 1,
-                        "username": "john_doe",
-                        "email": "john@example.com",
-                        "os": "linux",
-                        "totaltime": 100,
-                        "created_at": "2024-01-15T10:30:00Z",
-                        "updated_at": "2024-01-15T10:30:00Z",
-                    }
-                }
-            },
+            "description": "Создан",
+            "content": {"application/json": {"example": _user_example}},
         },
-        409: {
-            "description": "Конфликт данных - пользователь с таким username или email уже существует",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Пользователь с таким username или email уже существует"
-                    }
-                }
-            },
-        },
-        422: {
-            "description": "Ошибка валидации данных",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": [
-                            {
-                                "loc": ["body", "username"],
-                                "msg": "field required",
-                                "type": "value_error.missing",
-                            }
-                        ]
-                    }
-                }
-            },
-        },
+        401: _401,
+        409: _409,
     },
 )
-def create_user(data: UserCreate, repo: UserRepository = Depends(get_repo)):
+def create_user(
+    data: UserCreate,
+    repo: UserRepository = Depends(get_repo),
+    current: dict = Depends(get_current_user),
+):
     try:
         return repo.create(data)
     except IntegrityError:
         raise HTTPException(
-            status_code=409,
-            detail="Пользователь с таким username или email уже существует",
+            409, "Пользователь с таким username или email уже существует"
         )
 
 
 @router.get(
     "/",
     response_model=PaginatedUsers,
-    summary="Получить список пользователей",
-    description="Возвращает список пользователей с пагинацией. Пользователи с soft delete не отображаются.",
+    summary="Список пользователей",
+    description="Возвращает список пользователей с пагинацией. Soft-deleted записи не возвращаются.",
     responses={
         200: {
-            "description": "Успешный ответ",
+            "description": "Список с пагинацией",
             "content": {
                 "application/json": {
                     "example": {
-                        "data": [
-                            {
-                                "id": 1,
-                                "username": "john_doe",
-                                "email": "john@example.com",
-                                "os": "linux",
-                                "totaltime": 100,
-                                "created_at": "2024-01-15T10:30:00Z",
-                                "updated_at": "2024-01-15T10:30:00Z",
-                            }
-                        ],
+                        "data": [_user_example],
                         "meta": {"total": 25, "page": 1, "limit": 10, "total_pages": 3},
                     }
                 }
             },
-        }
+        },
+        401: _401,
     },
 )
 def get_users(
-    page: int = Query(1, ge=1, description="Номер страницы (начиная с 1)"),
-    limit: int = Query(
-        10, ge=1, le=100, description="Количество записей на странице (1-100)"
-    ),
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    limit: int = Query(10, ge=1, le=100, description="Записей на странице"),
     repo: UserRepository = Depends(get_repo),
+    current: dict = Depends(get_current_user),
 ):
     offset = (page - 1) * limit
     users, total = repo.get_all(offset, limit)
@@ -122,36 +113,24 @@ def get_users(
     "/{user_id}",
     response_model=UserRead,
     summary="Получить пользователя по ID",
-    description="Возвращает информацию о пользователе с указанным идентификатором",
+    description="Возвращает пользователя по ID. Soft-deleted записи не возвращаются.",
     responses={
         200: {
-            "description": "Пользователь найден",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 1,
-                        "username": "john_doe",
-                        "email": "john@example.com",
-                        "os": "linux",
-                        "totaltime": 100,
-                        "created_at": "2024-01-15T10:30:00Z",
-                        "updated_at": "2024-01-15T10:30:00Z",
-                    }
-                }
-            },
+            "description": "Найден",
+            "content": {"application/json": {"example": _user_example}},
         },
-        404: {
-            "description": "Пользователь не найден",
-            "content": {
-                "application/json": {"example": {"detail": "Пользователь не найден"}}
-            },
-        },
+        401: _401,
+        404: _404,
     },
 )
-def get_user(user_id: int, repo: UserRepository = Depends(get_repo)):
+def get_user(
+    user_id: int,
+    repo: UserRepository = Depends(get_repo),
+    current: dict = Depends(get_current_user),
+):
     user = repo.get_by_id(user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        raise HTTPException(404, "Пользователь не найден")
     return user
 
 
@@ -159,113 +138,88 @@ def get_user(user_id: int, repo: UserRepository = Depends(get_repo)):
     "/{user_id}",
     response_model=UserRead,
     summary="Полное обновление пользователя",
-    description="Обновляет все поля пользователя. Если пользователь не существует - возвращает 404.",
+    description="Обновляет все поля. Можно обновлять только свою запись.",
     responses={
         200: {
-            "description": "Пользователь успешно обновлен",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 1,
-                        "username": "john_updated",
-                        "email": "john_new@example.com",
-                        "os": "ubuntu",
-                        "totaltime": 500,
-                        "created_at": "2024-01-15T10:30:00Z",
-                        "updated_at": "2024-01-15T10:35:00Z",
-                    }
-                }
-            },
+            "description": "Обновлён",
+            "content": {"application/json": {"example": _user_example}},
         },
-        404: {
-            "description": "Пользователь не найден",
-            "content": {
-                "application/json": {"example": {"detail": "Пользователь не найден"}}
-            },
-        },
-        409: {
-            "description": "Конфликт данных",
-            "content": {"application/json": {"example": {"detail": "Конфликт данных"}}},
-        },
+        401: _401,
+        403: _403,
+        404: _404,
+        409: _409,
     },
 )
 def update_user_full(
-    user_id: int, data: UserCreate, repo: UserRepository = Depends(get_repo)
+    user_id: int,
+    data: UserCreate,
+    repo: UserRepository = Depends(get_repo),
+    current: dict = Depends(get_current_user),
 ):
     user = repo.get_by_id(user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        raise HTTPException(404, "Пользователь не найден")
+    if user.id != current["user_id"]:
+        raise HTTPException(403, "Нет доступа к этому ресурсу")
     try:
         return repo.update_full(user, data)
     except IntegrityError:
-        raise HTTPException(status_code=409, detail="Конфликт данных")
+        raise HTTPException(409, "Конфликт данных")
 
 
 @router.patch(
     "/{user_id}",
     response_model=UserRead,
     summary="Частичное обновление пользователя",
-    description="Обновляет только указанные поля пользователя",
+    description="Обновляет только указанные поля. Можно обновлять только свою запись.",
     responses={
         200: {
-            "description": "Пользователь успешно обновлен",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 1,
-                        "username": "john_doe",
-                        "email": "john@example.com",
-                        "os": "linux",
-                        "totaltime": 999,
-                        "created_at": "2024-01-15T10:30:00Z",
-                        "updated_at": "2024-01-15T10:40:00Z",
-                    }
-                }
-            },
+            "description": "Обновлён",
+            "content": {"application/json": {"example": _user_example}},
         },
-        404: {
-            "description": "Пользователь не найден",
-            "content": {
-                "application/json": {"example": {"detail": "Пользователь не найден"}}
-            },
-        },
-        409: {
-            "description": "Конфликт данных",
-            "content": {"application/json": {"example": {"detail": "Конфликт данных"}}},
-        },
+        401: _401,
+        403: _403,
+        404: _404,
+        409: _409,
     },
 )
 def update_user_partial(
-    user_id: int, data: UserUpdate, repo: UserRepository = Depends(get_repo)
+    user_id: int,
+    data: UserUpdate,
+    repo: UserRepository = Depends(get_repo),
+    current: dict = Depends(get_current_user),
 ):
     user = repo.get_by_id(user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        raise HTTPException(404, "Пользователь не найден")
+    if user.id != current["user_id"]:
+        raise HTTPException(403, "Нет доступа к этому ресурсу")
     try:
         return repo.update_partial(user, data)
     except IntegrityError:
-        raise HTTPException(status_code=409, detail="Конфликт данных")
+        raise HTTPException(409, "Конфликт данных")
 
 
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Мягкое удаление пользователя",
-    description="Помечает пользователя как удаленного (soft delete). Пользователь не удаляется из БД физически.",
+    description="Помечает запись как удалённую (soft delete). Можно удалять только свою запись.",
     responses={
-        204: {
-            "description": "Пользователь успешно удален (возвращается пустой ответ)",
-        },
-        404: {
-            "description": "Пользователь не найден",
-            "content": {
-                "application/json": {"example": {"detail": "Пользователь не найден"}}
-            },
-        },
+        204: {"description": "Удалён"},
+        401: _401,
+        403: _403,
+        404: _404,
     },
 )
-def delete_user(user_id: int, repo: UserRepository = Depends(get_repo)):
+def delete_user(
+    user_id: int,
+    repo: UserRepository = Depends(get_repo),
+    current: dict = Depends(get_current_user),
+):
     user = repo.get_by_id(user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        raise HTTPException(404, "Пользователь не найден")
+    if user.id != current["user_id"]:
+        raise HTTPException(403, "Нет доступа к этому ресурсу")
     repo.soft_delete(user)
