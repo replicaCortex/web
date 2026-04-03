@@ -21,21 +21,6 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 _oauth_states: set[str] = set()
 
-_401 = {
-    "description": "Не авторизован",
-    "content": {"application/json": {"example": {"detail": "Не авторизован"}}},
-}
-_400 = {
-    "description": "Неверный запрос",
-    "content": {"application/json": {"example": {"detail": "Неверные данные"}}},
-}
-_409 = {
-    "description": "Конфликт",
-    "content": {
-        "application/json": {"example": {"detail": "Пользователь уже существует"}}
-    },
-}
-
 
 def _set_cookies(response: Response, access: str, refresh: str):
     response.set_cookie(
@@ -55,63 +40,20 @@ def get_service(db: Session = Depends(get_db)) -> AuthService:
     return AuthService(db)
 
 
-@router.post(
-    "/register",
-    response_model=MessageResponse,
-    status_code=201,
-    summary="Регистрация нового пользователя",
-    description="Создаёт нового пользователя с хешированным паролем. Email должен быть уникальным.",
-    responses={
-        201: {
-            "content": {
-                "application/json": {"example": {"message": "Регистрация успешна"}}
-            }
-        },
-        409: _409,
-    },
-)
+@router.post("/register", response_model=MessageResponse, status_code=201)
 def register(data: RegisterDTO, svc: AuthService = Depends(get_service)):
     svc.register(data.username, data.email, data.password)
     return {"message": "Регистрация успешна"}
 
 
-@router.post(
-    "/login",
-    response_model=MessageResponse,
-    summary="Вход в систему",
-    description="Проверяет логин/пароль, устанавливает access и refresh токены в HttpOnly cookies.",
-    responses={
-        200: {
-            "content": {"application/json": {"example": {"message": "Вход выполнен"}}}
-        },
-        401: {
-            "description": "Неверные учётные данные",
-            "content": {
-                "application/json": {"example": {"detail": "Неверные учётные данные"}}
-            },
-        },
-    },
-)
+@router.post("/login", response_model=MessageResponse)
 def login(data: LoginDTO, response: Response, svc: AuthService = Depends(get_service)):
     user, access, refresh = svc.login(data.email, data.password)
     _set_cookies(response, access, refresh)
     return {"message": "Вход выполнен"}
 
 
-@router.post(
-    "/refresh",
-    response_model=MessageResponse,
-    summary="Обновление токенов",
-    description="Принимает refresh_token из cookie, выдаёт новую пару токенов.",
-    responses={
-        200: {
-            "content": {
-                "application/json": {"example": {"message": "Токены обновлены"}}
-            }
-        },
-        401: _401,
-    },
-)
+@router.post("/refresh", response_model=MessageResponse)
 def refresh(
     response: Response,
     refresh_token: str = Cookie(None),
@@ -124,16 +66,7 @@ def refresh(
     return {"message": "Токены обновлены"}
 
 
-@router.get(
-    "/whoami",
-    response_model=UserProfileResponse,
-    summary="Текущий пользователь",
-    description="Возвращает профиль авторизованного пользователя. Чувствительные данные (пароль, соль, токены) не возвращаются.",
-    responses={
-        200: {"description": "Профиль пользователя"},
-        401: _401,
-    },
-)
+@router.get("/whoami", response_model=UserProfileResponse)
 def whoami(
     current: dict = Depends(get_current_user), svc: AuthService = Depends(get_service)
 ):
@@ -149,18 +82,7 @@ def whoami(
     )
 
 
-@router.post(
-    "/logout",
-    response_model=MessageResponse,
-    summary="Выход из текущей сессии",
-    description="Отзывает текущую пару токенов и очищает cookies.",
-    responses={
-        200: {
-            "content": {"application/json": {"example": {"message": "Выход выполнен"}}}
-        },
-        401: _401,
-    },
-)
+@router.post("/logout", response_model=MessageResponse)
 def logout(
     response: Response,
     current: dict = Depends(get_current_user),
@@ -171,20 +93,7 @@ def logout(
     return {"message": "Выход выполнен"}
 
 
-@router.post(
-    "/logout-all",
-    response_model=MessageResponse,
-    summary="Выход из всех сессий",
-    description="Отзывает все токены пользователя во всех сессиях.",
-    responses={
-        200: {
-            "content": {
-                "application/json": {"example": {"message": "Все сессии завершены"}}
-            }
-        },
-        401: _401,
-    },
-)
+@router.post("/logout-all", response_model=MessageResponse)
 def logout_all(
     response: Response,
     current: dict = Depends(get_current_user),
@@ -195,15 +104,7 @@ def logout_all(
     return {"message": "Все сессии завершены"}
 
 
-@router.get(
-    "/oauth/{provider}",
-    summary="Инициация OAuth входа",
-    description="Генерирует state (CSRF-защита) и редиректит на страницу авторизации провайдера (Yandex).",
-    responses={
-        302: {"description": "Редирект на OAuth провайдера"},
-        400: _400,
-    },
-)
+@router.get("/oauth/{provider}")
 def oauth_init(provider: str):
     if provider != "yandex":
         raise HTTPException(400, "Провайдер не поддерживается")
@@ -213,15 +114,7 @@ def oauth_init(provider: str):
     return RedirectResponse(url, status_code=302)
 
 
-@router.get(
-    "/oauth/{provider}/callback",
-    summary="Callback от OAuth провайдера",
-    description="Проверяет state, обменивает code на токен провайдера, создаёт/находит пользователя, устанавливает cookies.",
-    responses={
-        302: {"description": "Редирект на фронтенд с установленными cookies"},
-        400: _400,
-    },
-)
+@router.get("/oauth/{provider}/callback")
 def oauth_callback(
     provider: str,
     code: str,
@@ -232,36 +125,16 @@ def oauth_callback(
     if provider != "yandex":
         raise HTTPException(400, "Провайдер не поддерживается")
     if state not in _oauth_states:
-        raise HTTPException(400, "Невалидный state (CSRF)")
+        raise HTTPException(400, "Невалидный state (CSRF защита)")
     _oauth_states.discard(state)
+
     user, access, refresh = svc.handle_yandex_callback(code)
     redirect = RedirectResponse(FRONTEND_URL, status_code=302)
-    redirect.set_cookie(
-        "access_token", access, httponly=True, samesite="lax", max_age=900
-    )
-    redirect.set_cookie(
-        "refresh_token", refresh, httponly=True, samesite="lax", max_age=604800
-    )
+    _set_cookies(redirect, access, refresh)
     return redirect
 
 
-@router.post(
-    "/forgot-password",
-    response_model=MessageResponse,
-    summary="Запрос сброса пароля",
-    description="Если email существует — генерирует токен сброса. В реальном приложении токен отправляется на email.",
-    responses={
-        200: {
-            "content": {
-                "application/json": {
-                    "example": {
-                        "message": "Если email существует, инструкции отправлены"
-                    }
-                }
-            }
-        }
-    },
-)
+@router.post("/forgot-password")
 def forgot_password(data: ForgotPasswordDTO, svc: AuthService = Depends(get_service)):
     token = svc.forgot_password(data.email)
     return {
@@ -270,20 +143,7 @@ def forgot_password(data: ForgotPasswordDTO, svc: AuthService = Depends(get_serv
     }
 
 
-@router.post(
-    "/reset-password",
-    response_model=MessageResponse,
-    summary="Установка нового пароля",
-    description="Принимает токен сброса и новый пароль. Токен одноразовый.",
-    responses={
-        200: {
-            "content": {
-                "application/json": {"example": {"message": "Пароль успешно изменён"}}
-            }
-        },
-        400: _400,
-    },
-)
+@router.post("/reset-password", response_model=MessageResponse)
 def reset_password(data: ResetPasswordDTO, svc: AuthService = Depends(get_service)):
     svc.reset_password(data.token, data.new_password)
     return {"message": "Пароль успешно изменён"}
