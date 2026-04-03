@@ -5,9 +5,23 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class RegisterDTO(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
-    password: str = Field(..., min_length=6, max_length=128)
+    username: str = Field(
+        ...,
+        min_length=3,
+        max_length=50,
+        description="Уникальное имя пользователя, от 3 до 50 символов",
+        example="john_doe",
+    )
+    email: EmailStr = Field(
+        ..., description="Электронная почта пользователя", example="john@example.com"
+    )
+    password: str = Field(
+        ...,
+        min_length=6,
+        max_length=128,
+        description="Пароль пользователя, от 6 до 128 символов. Должен содержать хотя бы одну цифру",
+        example="securePass123",
+    )
 
     @field_validator("password")
     @classmethod
@@ -18,31 +32,76 @@ class RegisterDTO(BaseModel):
 
 
 class LoginDTO(BaseModel):
-    email: EmailStr
-    password: str
+    email: EmailStr = Field(
+        ..., description="Электронная почта пользователя", example="john@example.com"
+    )
+    password: str = Field(
+        ..., description="Пароль пользователя", example="securePass123"
+    )
 
 
 class ForgotPasswordDTO(BaseModel):
-    email: EmailStr
+    email: EmailStr = Field(
+        ...,
+        description="Электронная почта, на которую будет отправлена ссылка для сброса пароля",
+        example="john@example.com",
+    )
 
 
 class ResetPasswordDTO(BaseModel):
-    token: str
-    new_password: str = Field(..., min_length=6, max_length=128)
+    token: str = Field(
+        ...,
+        description="Токен сброса пароля, полученный по электронной почте",
+        example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dr9E8RkC0jP",
+    )
+    new_password: str = Field(
+        ...,
+        min_length=6,
+        max_length=128,
+        description="Новый пароль пользователя, от 6 до 128 символов",
+        example="newSecurePass456",
+    )
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v):
+        if not re.search(r"\d", v):
+            raise ValueError("Пароль должен содержать хотя бы одну цифру")
+        return v
 
 
 class UserProfileResponse(BaseModel):
-    id: int
-    username: str
-    email: str
-    os: str
-    totaltime: int
-    created_at: str
-    updated_at: str
+    id: int = Field(
+        ..., description="Уникальный идентификатор пользователя", example=123
+    )
+    username: str = Field(..., description="Имя пользователя", example="john_doe")
+    email: str = Field(
+        ..., description="Электронная почта пользователя", example="john@example.com"
+    )
+    os: str = Field(
+        ..., description="Операционная система пользователя", example="Windows 11"
+    )
+    totaltime: int = Field(
+        ..., description="Общее время активности пользователя (в минутах)", example=1247
+    )
+    created_at: str = Field(
+        ...,
+        description="Дата и время создания учетной записи",
+        example="2024-01-15T10:30:00Z",
+    )
+    updated_at: str = Field(
+        ...,
+        description="Дата и время последнего обновления профиля",
+        example="2024-03-20T15:45:12Z",
+    )
 
     class Config:
         from_attributes = True
 
 
 class MessageResponse(BaseModel):
-    message: str
+    message: str = Field(
+        ...,
+        description="Сообщение о результате выполнения операции",
+        example="Операция выполнена успешно",
+    )

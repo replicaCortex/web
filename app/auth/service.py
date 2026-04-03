@@ -27,13 +27,23 @@ class AuthService:
         self.repo = AuthRepository(db)
 
     @staticmethod
-    def _hash_password(password: str, salt: str = None) -> tuple[str, str]:
+    def _hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
         if not salt:
             salt = os.urandom(16).hex()
 
-        salted_password = password + salt
-        hashed = hashlib.sha256(salted_password.encode()).hexdigest()
-        return hashed, salt
+        # salted_password = password + salt
+        # hashed = hashlib.sha256(salted_password.encode()).hexdigest()
+        #
+        # return hashed, salt
+
+        key = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode("utf-8"),
+            salt.encode("utf-8"),
+            100000,
+        )
+
+        return key.hex(), salt
 
     @staticmethod
     def _verify_password(password: str, hashed: str, salt: str) -> bool:
@@ -75,7 +85,7 @@ class AuthService:
             raise HTTPException(401, "Refresh token отозван")
 
         self.repo.revoke_token(record)
-        user = self.repo.get_user_by_id(payload["sub"])
+        user = self.repo.get_user_by_id(int(payload["sub"]))
         if not user:
             raise HTTPException(401, "Пользователь не найден")
 
@@ -114,7 +124,7 @@ class AuthService:
             if payload.get("type") != "reset":
                 raise HTTPException(400, "Невалидный токен сброса")
 
-            user = self.repo.get_user_by_id(payload["sub"])
+            user = self.repo.get_user_by_id(int(payload["sub"]))
             if not user:
                 raise HTTPException(404, "Пользователь не найден")
 

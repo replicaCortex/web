@@ -1,3 +1,5 @@
+import math
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -106,7 +108,13 @@ def get_users(
 ):
     offset = (page - 1) * limit
     users, total = repo.get_all(offset, limit)
-    return PaginatedUsers.create(users, total, page, limit)
+
+    total_pages = math.ceil(total / limit) if total > 0 else 0
+
+    return PaginatedUsers(
+        data=users,
+        meta={"total": total, "page": page, "limit": limit, "total_pages": total_pages},
+    )
 
 
 @router.get(

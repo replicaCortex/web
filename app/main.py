@@ -4,7 +4,6 @@ from app.auth.router import router as auth_router
 from app.config import ENVIRONMENT
 from app.router import router as users_router
 
-# В production скрываем документацию
 if ENVIRONMENT == "production":
     app = FastAPI(
         title="User API",

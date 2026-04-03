@@ -13,7 +13,7 @@ from app.config import (
 
 def create_access_token(user_id: int) -> str:
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "type": "access",
         "exp": int(time.time()) + JWT_ACCESS_EXPIRATION * 60,
     }
@@ -22,7 +22,7 @@ def create_access_token(user_id: int) -> str:
 
 def create_refresh_token(user_id: int) -> str:
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "type": "refresh",
         "exp": int(time.time()) + JWT_REFRESH_EXPIRATION * 60,
     }
