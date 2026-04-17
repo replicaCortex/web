@@ -11,10 +11,13 @@ from app.auth.jwt_utils import (
     create_access_token,
     create_refresh_token,
     hash_token,
+    verify_access_token,
     verify_refresh_token,
 )
 from app.auth.repository import AuthRepository
+from app.cache import cache_service
 from app.config import (
+    JWT_ACCESS_EXPIRATION,
     JWT_ACCESS_SECRET,
     YANDEX_CALLBACK_URL,
     YANDEX_CLIENT_ID,
@@ -51,10 +54,18 @@ class AuthService:
         return check_hash == hashed
 
     def _issue_tokens(self, user_id: int) -> tuple[str, str]:
-        access = create_access_token(user_id)
-        refresh = create_refresh_token(user_id)
-        self.repo.save_token(user_id, hash_token(access), hash_token(refresh))
-        return access, refresh
+        access_token, jti = create_access_token(user_id)
+        refresh_token = create_refresh_token(user_id)
+
+        # Сохраняем JTI в Redis (ключ: wp:auth:user:1:access:uuid)
+        # TTL должен совпадать с временем жизни токена (напр. 15 мин)
+        cache_key = f"wp:auth:user:{user_id}:access:{jti}"
+        cache_service.set(cache_key, "valid", ttl=JWT_ACCESS_EXPIRATION * 60)
+
+        self.repo.save_token(
+            user_id, hash_token(access_token), hash_token(refresh_token)
+        )
+        return access_token, refresh_token
 
     def register(self, username: str, email: str, password: str):
         if self.repo.get_user_by_email(email):
@@ -96,6 +107,11 @@ class AuthService:
         record = self.repo.find_token_by_access_hash(hash_token(access_token))
         if record:
             self.repo.revoke_token(record)
+
+        payload = verify_access_token(access_token)
+        if payload:
+            cache_key = f"wp:auth:user:{payload['sub']}:access:{payload['jti']}"
+            cache_service.delete(cache_key)
 
     def logout_all(self, user_id: int):
         self.repo.revoke_all_user_tokens(user_id)

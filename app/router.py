@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.cache import cache_service
 from app.database import get_db
 from app.repository import UserRepository
 from app.schemas import PaginatedUsers, UserCreate, UserRead, UserUpdate
@@ -52,6 +53,14 @@ def get_repo(db: Session = Depends(get_db)) -> UserRepository:
     return UserRepository(db)
 
 
+def invalidate_users_cache(user_id=None):
+    # Удаляем все списки
+    cache_service.delete_by_pattern("wp:users:list:*")
+    # Если передан ID, удаляем профиль конкретного юзера
+    if user_id:
+        cache_service.delete(f"wp:users:profile:{user_id}")
+
+
 @router.post(
     "/",
     response_model=UserRead,
@@ -67,16 +76,15 @@ def get_repo(db: Session = Depends(get_db)) -> UserRepository:
         409: _409,
     },
 )
-def create_user(
-    data: UserCreate,
-    repo: UserRepository = Depends(get_repo),
-    current: dict = Depends(get_current_user),
-):
+def create_user(data: UserCreate, repo: UserRepository = Depends(get_repo)):
     try:
-        return repo.create(data)
+        user = repo.create(data)
+        invalidate_users_cache()
+        return user
+
     except IntegrityError:
         raise HTTPException(
-            409, "Пользователь с таким username или email уже существует"
+            status_code=409, detail="Пользователь с таким email уже существует"
         )
 
 
@@ -101,20 +109,37 @@ def create_user(
     },
 )
 def get_users(
-    page: int = Query(1, ge=1, description="Номер страницы"),
-    limit: int = Query(10, ge=1, le=100, description="Записей на странице"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1),
     repo: UserRepository = Depends(get_repo),
-    current: dict = Depends(get_current_user),
 ):
+    cache_key = f"wp:users:list:page:{page}:limit:{limit}"
+
+    # 1. Пытаемся взять из кеша
+    cached_data = cache_service.get(cache_key)
+    if cached_data:
+        return cached_data
+
+    # 2. Если нет — идем в БД
     offset = (page - 1) * limit
     users, total = repo.get_all(offset, limit)
-
     total_pages = math.ceil(total / limit) if total > 0 else 0
 
-    return PaginatedUsers(
-        data=users,
-        meta={"total": total, "page": page, "limit": limit, "total_pages": total_pages},
-    )
+    # Превращаем в dict для сериализации (т.к. модели SQLAlchemy нельзя напрямую в JSON)
+    response_data = {
+        "data": [UserRead.from_orm(u).model_dump(mode="json") for u in users],
+        "meta": {
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages,
+        },
+    }
+
+    # 3. Сохраняем в кеш
+    cache_service.set(cache_key, response_data)
+
+    return response_data
 
 
 @router.get(
@@ -231,3 +256,4 @@ def delete_user(
     if user.id != current["user_id"]:
         raise HTTPException(403, "Нет доступа к этому ресурсу")
     repo.soft_delete(user)
+    invalidate_users_cache(user_id)

@@ -20,3 +20,8 @@ YANDEX_CALLBACK_URL = os.getenv(
     "YANDEX_CALLBACK_URL", "http://localhost:4200/auth/oauth/yandex/callback"
 )
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "my_super_secret_password")
+CACHE_TTL = int(os.getenv("CACHE_TTL_DEFAULT", "300"))

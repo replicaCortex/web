@@ -14,6 +14,7 @@ from app.auth.schemas import (
     UserProfileResponse,
 )
 from app.auth.service import AuthService
+from app.cache import cache_service
 from app.config import FRONTEND_URL
 from app.database import get_db
 
@@ -94,26 +95,22 @@ def refresh(
     return {"message": "Токены обновлены"}
 
 
-@router.get(
-    "/whoami",
-    response_model=UserProfileResponse,
-    summary="Получение информации о текущем пользователе",
-    description="Возвращает профиль авторизованного пользователя",
-    responses={200: {"description": "Профиль пользователя"}, 401: _401_auth},
-)
+@router.get("/whoami", response_model=UserProfileResponse)
 def whoami(
     current: dict = Depends(get_current_user), svc: AuthService = Depends(get_service)
 ):
-    user = svc.get_profile(current["user_id"])
-    return UserProfileResponse(
-        id=user.id,
-        username=user.username,
-        email=user.email,
-        os=user.os,
-        totaltime=user.totaltime,
-        created_at=str(user.created_at),
-        updated_at=str(user.updated_at),
-    )
+    user_id = current["user_id"]
+    cache_key = f"wp:users:profile:{user_id}"
+
+    cached_user = cache_service.get(cache_key)
+    if cached_user:
+        return cached_user
+
+    user = svc.get_profile(user_id)
+    response_data = UserProfileResponse.from_orm(user).model_dump(mode="json")
+
+    cache_service.set(cache_key, response_data)
+    return response_data
 
 
 @router.post(

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.jwt_utils import hash_token, verify_access_token
 from app.auth.repository import AuthRepository
+from app.cache import cache_service
 from app.database import get_db
 
 cookie_scheme = APIKeyCookie(name="access_token", auto_error=False)
@@ -28,5 +29,13 @@ def get_current_user(
     record = repo.find_token_by_access_hash(hash_token(actual_token))
     if not record:
         raise HTTPException(401, "Токен отозван")
+
+    payload = verify_access_token(actual_token)
+
+    # НОВАЯ ПРОВЕРКА В REDIS
+    jti = payload.get("jti")
+    user_id = payload.get("sub")
+    if not cache_service.get(f"wp:auth:user:{user_id}:access:{jti}"):
+        raise HTTPException(401, "Сессия истекла или токен отозван")
 
     return {"user_id": int(payload["sub"]), "access_token": actual_token}

@@ -1,5 +1,6 @@
 import hashlib
 import time
+import uuid
 
 import jwt
 
@@ -9,15 +10,6 @@ from app.config import (
     JWT_REFRESH_EXPIRATION,
     JWT_REFRESH_SECRET,
 )
-
-
-def create_access_token(user_id: int) -> str:
-    payload = {
-        "sub": str(user_id),
-        "type": "access",
-        "exp": int(time.time()) + JWT_ACCESS_EXPIRATION * 60,
-    }
-    return jwt.encode(payload, JWT_ACCESS_SECRET, algorithm="HS256")
 
 
 def create_refresh_token(user_id: int) -> str:
@@ -45,3 +37,15 @@ def verify_refresh_token(token: str) -> dict | None:
 
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_access_token(user_id: int) -> tuple[str, str]:
+    jti = str(uuid.uuid4())
+    payload = {
+        "sub": str(user_id),
+        "jti": jti,
+        "type": "access",
+        "exp": int(time.time()) + JWT_ACCESS_EXPIRATION * 60,
+    }
+    token = jwt.encode(payload, JWT_ACCESS_SECRET, algorithm="HS256")
+    return token, jti

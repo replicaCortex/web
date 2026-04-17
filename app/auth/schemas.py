@@ -1,7 +1,8 @@
 import re
+from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class RegisterDTO(BaseModel):
@@ -71,6 +72,8 @@ class ResetPasswordDTO(BaseModel):
 
 
 class UserProfileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int = Field(
         ..., description="Уникальный идентификатор пользователя", example=123
     )
@@ -84,19 +87,16 @@ class UserProfileResponse(BaseModel):
     totaltime: int = Field(
         ..., description="Общее время активности пользователя (в минутах)", example=1247
     )
-    created_at: str = Field(
+    created_at: datetime = Field(
         ...,
         description="Дата и время создания учетной записи",
         example="2024-01-15T10:30:00Z",
     )
-    updated_at: str = Field(
+    updated_at: datetime = Field(
         ...,
         description="Дата и время последнего обновления профиля",
         example="2024-03-20T15:45:12Z",
     )
-
-    class Config:
-        from_attributes = True
 
 
 class MessageResponse(BaseModel):

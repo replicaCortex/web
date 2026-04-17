@@ -11,6 +11,7 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "pydantic[email]>=2.12.5",
     "pyjwt>=2.12.1",
+    "redis>=7.4.0",
     "sqlalchemy>=2.0.48",
     "uvicorn>=0.41.0",
 ]
