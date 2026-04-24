@@ -11,7 +11,7 @@ class CacheService:
             host=REDIS_HOST,
             port=REDIS_PORT,
             password=REDIS_PASSWORD,
-            decode_responses=True,  # Чтобы получать строки, а не байты
+            decode_responses=True,
         )
 
     def set(self, key: str, value: dict | list, ttl: int = CACHE_TTL):

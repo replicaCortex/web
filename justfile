@@ -18,8 +18,11 @@ generate_migration: clear_migration
 clear_migration:
     -rm -rf alembic/versions/
 
-redis:
+redism:
     docker exec -it wp_labs_redis redis-cli -a {{ REDIS_PASSWORD }} MONITOR
+
+redis:
+    docker exec -it wp_labs_redis redis-cli -a {{ REDIS_PASSWORD }} 
 
 # --- DOCKER ---
 

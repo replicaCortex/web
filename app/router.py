@@ -18,7 +18,9 @@ def get_repo():
 def create_user(data: UserCreate, repo: UserRepository = Depends(get_repo)):
     try:
         user = repo.create(data)
+        cache_service.delete_by_pattern("wp:users:list:*")
         return UserRead.model_validate(user)
+
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(409, "Конфликт: пользователь уже существует")
@@ -73,3 +75,5 @@ def delete_user(
     if not user or str(user.id) != current["user_id"]:
         raise HTTPException(403, "Нет доступа")
     repo.soft_delete(user)
+    cache_service.delete_by_pattern("wp:users:list:*")
+    cache_service.delete(f"wp:users:profile:{user_id}")
