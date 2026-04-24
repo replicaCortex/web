@@ -47,7 +47,7 @@ def _clear_cookies(response: Response):
 
 
 def get_service(db: Session = Depends(get_db)) -> AuthService:
-    return AuthService(db)
+    return AuthService()
 
 
 @router.post(
@@ -107,7 +107,7 @@ def whoami(
         return cached_user
 
     user = svc.get_profile(user_id)
-    response_data = UserProfileResponse.from_orm(user).model_dump(mode="json")
+    response_data = UserProfileResponse.model_validate(user).model_dump(mode="json")
 
     cache_service.set(cache_key, response_data)
     return response_data

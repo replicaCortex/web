@@ -1,20 +1,19 @@
 services:
-  postgres:
-    image: postgres:16
-    container_name: wp_labs_db
+  mongo:
+    image: mongo:6
+    container_name: wp_labs_mongo
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - wp_labs_postgres:/var/lib/postgresql/data
+      - wp_labs_mongo:/data/db
     networks:
       - wp_labs_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,10 +41,13 @@ services:
       REDIS_HOST: redis  
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MONGO_URI: ${MONGO_URI}
     ports:
       - "4200:4200"
     depends_on:
-      postgres:
+      mongo:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - wp_labs_network
@@ -66,7 +68,7 @@ services:
       retries: 5
 
 volumes:
-  wp_labs_postgres:
+  wp_labs_mongo:
 
 networks:
   wp_labs_network:

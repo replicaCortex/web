@@ -26,8 +26,8 @@ from app.config import (
 
 
 class AuthService:
-    def __init__(self, db: Session):
-        self.repo = AuthRepository(db)
+    def __init__(self):
+        self.repo = AuthRepository()
 
     @staticmethod
     def _hash_password(password: str, salt: str | None = None) -> tuple[str, str]:

@@ -74,29 +74,18 @@ class ResetPasswordDTO(BaseModel):
 class UserProfileResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int = Field(
-        ..., description="Уникальный идентификатор пользователя", example=123
-    )
-    username: str = Field(..., description="Имя пользователя", example="john_doe")
-    email: str = Field(
-        ..., description="Электронная почта пользователя", example="john@example.com"
-    )
-    os: str = Field(
-        ..., description="Операционная система пользователя", example="Windows 11"
-    )
-    totaltime: int = Field(
-        ..., description="Общее время активности пользователя (в минутах)", example=1247
-    )
-    created_at: datetime = Field(
-        ...,
-        description="Дата и время создания учетной записи",
-        example="2024-01-15T10:30:00Z",
-    )
-    updated_at: datetime = Field(
-        ...,
-        description="Дата и время последнего обновления профиля",
-        example="2024-03-20T15:45:12Z",
-    )
+    id: str
+    username: str
+    email: str
+    os: str
+    totaltime: int
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def transform_id(cls, v):
+        return str(v)
 
 
 class MessageResponse(BaseModel):

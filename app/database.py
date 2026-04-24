@@ -1,19 +1,14 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from mongoengine import connect
 
-from app.config import DATABASE_URL
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
+from app.config import MONGO_URI
 
 
-class Base(DeclarativeBase):
-    pass
+def init_db():
+    # Просто подключаемся к базе
+    connect(host=MONGO_URI)
 
 
 def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    # В MongoDB (MongoEngine) соединение глобальное,
+    # этот генератор оставляем для совместимости с Depends в роутах
+    yield None
