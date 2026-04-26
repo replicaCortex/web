@@ -74,3 +74,38 @@ const deleteUser = async (id: string) => {
   });
   return response.json();
 };
+import { UserCreate, UserRead } from '../../../app/users/schemas';
+
+interface RegisterDTO {
+  username: string;
+  email: string;
+  password: string;
+}
+
+interface LoginDTO {
+  email: string;
+  password: string;
+}
+
+interface ForgotPasswordDTO {
+  email: string;
+}
+
+interface ResetPasswordDTO {
+  token: string;
+  new_password: string;
+}
+
+interface UserProfileResponse {
+  id: string;
+  username: string;
+  email: string;
+  os: string;
+  totaltime: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface MessageResponse {
+  message: string;
+}
