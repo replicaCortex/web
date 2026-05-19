@@ -21,3 +21,11 @@ YANDEX_CALLBACK_URL = os.getenv(
     "YANDEX_CALLBACK_URL", "http://localhost:4200/auth/oauth/yandex/callback"
 )
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "minio:9000")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minio_admin")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minio_secure_password_change_in_prod")
+MINIO_BUCKET = os.getenv("MINIO_BUCKET", "wp-labs-files")
+MINIO_USE_SSL = os.getenv("MINIO_USE_SSL", "false").lower() == "true"
+MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 10485760))
