@@ -1,0 +1,202 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: wp-labs
+  labels:
+    app: api
+    version: v1
+    component: backend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: api
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: api
+        version: v1
+        component: backend
+    spec:
+      terminationGracePeriodSeconds: 30
+
+      containers:
+        - name: api
+
+          image: docker.io/wp-labs/api:1.0.0
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 4200
+              name: http
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: api-config
+                optional: false
+
+          env:
+            - name: UV_CACHE_DIR
+              value: "/tmp/.cache/uv"
+            - name: HOME
+              value: "/tmp"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: DB_PASSWORD
+
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: REDIS_PASSWORD
+
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: JWT_ACCESS_SECRET
+
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: JWT_REFRESH_SECRET
+
+            - name: CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: CLIENT_ID
+            - name: CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: CLIENT_SECRET
+
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: SMTP_PASS
+
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: MINIO_ACCESS_KEY
+
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: MINIO_SECRET_KEY
+
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: RABBITMQ_USER
+
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: RABBITMQ_PASS
+
+            - name: QUEUE_USER_REGISTERED
+              valueFrom:
+                configMapKeyRef:
+                  name: api-config
+                  key: QUEUE_USER_REGISTERED
+
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: MONGO_URI
+
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+              scheme: HTTP
+              httpHeaders:
+                - name: X-Kube-Probe
+                  value: "true"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+              scheme: HTTP
+              httpHeaders:
+                - name: X-Kube-Probe
+                  value: "true"
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+            successThreshold: 1
+
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+              scheme: HTTP
+
+            failureThreshold: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+              subPath: tmp
+            - name: logs
+              mountPath: /app/logs
+              subPath: logs
+
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+            medium: Memory
+        - name: logs
+          emptyDir:
+            sizeLimit: 200Mi
