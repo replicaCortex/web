@@ -14,6 +14,9 @@ class AuthRepository:
     def get_user_by_yandex_id(self, yandex_id: str):
         return User.objects(yandex_id=yandex_id).first()
 
+    def get_user_by_username(self, username: str):
+        return User.objects(username=username, deleted_at=None).first()  # type: ignore
+
     def create_user(self, username, email, password_hash, salt):
         user = User(
             username=username, email=email, password_hash=password_hash, salt=salt

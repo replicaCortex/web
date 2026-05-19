@@ -7,16 +7,7 @@ set dotenv-load := true
 REDIS_PASSWORD := env('REDIS_PASSWORD')
 
 run:
-    uv run uvicorn app.main:app --reload --port 4200
-
-create_db: generate_migration
-    uv run alembic upgrade head
-
-generate_migration: clear_migration
-    uv run alembic revision --autogenerate -m "create users table"
-
-clear_migration:
-    -rm -rf alembic/versions/
+    just docker-up
 
 redism:
     docker exec -it wp_labs_redis redis-cli -a {{ REDIS_PASSWORD }} MONITOR
@@ -34,3 +25,7 @@ docker-down:
 
 docker-build: docker-down
     docker compose up -d --build
+    just docker-logs-app
+
+docker-logs-app:
+    docker logs -f wp_labs_app
