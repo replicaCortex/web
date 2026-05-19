@@ -21,19 +21,20 @@ class UserUpdate(BaseModel):
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    # Мы называем поле id, а валидатор сам заберет его из Mongo
     id: str
     username: str
     email: str
     os: str
     totaltime: int
+    avatar_file_id: Optional[str] = None  # <--- ДОБАВИТЬ ЭТУ СТРОКУ
     created_at: datetime
     updated_at: datetime
 
-    @field_validator("id", mode="before")
+    @field_validator("id", "avatar_file_id", mode="before")  # <--- ОБНОВИТЬ ДЕКОРАТОР
     @classmethod
     def transform_id(cls, v):
-        # Превращаем ObjectId в обычную строку
+        if v is None:
+            return v
         return str(v)
 
 

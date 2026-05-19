@@ -79,12 +79,15 @@ class UserProfileResponse(BaseModel):
     email: str
     os: str
     totaltime: int
+    avatar_file_id: Optional[str] = None  # <--- ДОБАВИТЬ ЭТУ СТРОКУ
     created_at: datetime
     updated_at: datetime
 
-    @field_validator("id", mode="before")
+    @field_validator("id", "avatar_file_id", mode="before")  # <--- ОБНОВИТЬ ДЕКОРАТОР
     @classmethod
     def transform_id(cls, v):
+        if v is None:
+            return v
         return str(v)
 
 
