@@ -43,7 +43,7 @@ class StorageService:
         """
         # 1. Генерируем уникальный ключ для файла, чтобы избежать перезаписи
         # Например: 123e4567-e89b-12d3-a456-426614174000-avatar.png
-        ext = filename.split(".")[-1] if "." in filename else "bin"
+        filename.split(".")[-1] if "." in filename else "bin"
         object_key = f"{uuid.uuid4()}-{filename}"
 
         # 2. Загружаем стрим прямо в MinIO

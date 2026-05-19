@@ -1,11 +1,11 @@
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.auth.dependencies import get_current_user
 from app.cache import cache_service
 from app.repository import UserRepository
-from app.schemas import PaginatedUsers, UserCreate, UserRead, UserUpdate
+from app.schemas import PaginatedUsers, UserCreate, UserRead
 
 router = APIRouter(prefix="/users", tags=["Users"])
 

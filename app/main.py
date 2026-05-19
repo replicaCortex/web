@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from mongoengine import connect
 
 from app.auth.router import router as auth_router
-from app.config import ENVIRONMENT, MONGO_URI
+from app.config import MONGO_URI
 from app.router import router as users_router
 from app.storage.router import router as files_router
 
