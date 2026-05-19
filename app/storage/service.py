@@ -86,4 +86,4 @@ class StorageService:
 
     def get_file_metadata(self, file_id: str) -> File | None:
         """Ищет метаданные файла в MongoDB по его ID (с учетом soft delete)"""
-        return File.object_key(id=file_id, deleted_at=None).first()
+        return File.objects(id=file_id, deleted_at=None).first()

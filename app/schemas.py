@@ -48,3 +48,10 @@ class PaginationMeta(BaseModel):
 class PaginatedUsers(BaseModel):
     data: List[UserRead]
     meta: PaginationMeta
+
+
+class ProfileUpdateDTO(BaseModel):
+    avatarFileId: Optional[str] = None
+    username: Optional[str] = None
+    os: Optional[str] = None
+    totaltime: Optional[int] = None
