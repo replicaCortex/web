@@ -33,7 +33,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # НОВЫЙ СЕРВИС: MinIO
   minio:
     image: minio/minio:latest
     container_name: wp_labs_minio
@@ -42,8 +41,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     ports:
-      - "9000:9000"   # API
-      - "9001:9001"   # Web Console
+      - "9000:9000"   
+      - "9001:9001"   
     volumes:
       - wp_labs_minio:/data
     networks:
@@ -79,8 +78,19 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       MONGO_URI: ${MONGO_URI}
+
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${DB_USER}      
+      RABBITMQ_PASS: ${DB_PASSWORD} 
+      QUEUE_USER_REGISTERED: wp.auth.user.registered
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_SECURE: ${SMTP_SECURE}
       
-      # ДОБАВЛЕНО ДЛЯ MINIO
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
@@ -95,14 +105,40 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio: # ДОБАВЛЕНО
+      minio: 
+        condition: service_healthy
+      rabbitmq: 
         condition: service_healthy
     networks:
       - wp_labs_network
 
+
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: wp_labs_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${DB_USER}       
+      RABBITMQ_DEFAULT_PASS: ${DB_PASSWORD}  
+    ports:
+      - "5672:5672"   
+      - "15672:15672" 
+    volumes:
+      - wp_labs_rabbitmq:/var/lib/rabbitmq
+    networks:
+      - wp_labs_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   wp_labs_mongo:
-  wp_labs_minio: # ДОБАВЛЕНО
+  wp_labs_minio: 
+  wp_labs_rabbitmq:
+
 
 networks:
   wp_labs_network:

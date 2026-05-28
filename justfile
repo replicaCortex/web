@@ -51,7 +51,7 @@ k8s-apply:
     kubectl apply -f k8s/02-mongodb/
     kubectl apply -f k8s/03-redis/
     kubectl apply -f k8s/04-minio/
-    # kubectl apply -f k8s/05-rabbitmq/
+    kubectl apply -f k8s/05-rabbitmq/
     kubectl apply -f k8s/06-api/
 
 k8s-port-api:

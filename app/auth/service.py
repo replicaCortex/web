@@ -19,6 +19,7 @@ from app.config import (
     YANDEX_CLIENT_ID,
     YANDEX_CLIENT_SECRET,
 )
+from app.queue.rabbitmq import rabbit_service
 
 
 class AuthService:
@@ -45,24 +46,26 @@ class AuthService:
             refresh_hash=hash_token(refresh_token),
         )
 
-        # --- ИСПРАВЛЕНИЕ: Сохраняем сессию в Redis ---
         cache_key = f"wp:auth:user:{user.id}:access:{jti}"
         cache_service.set(cache_key, "active", ttl=JWT_ACCESS_EXPIRATION * 60)
-        # ---------------------------------------------
 
         return access_token, refresh_token
 
-    def register(self, username: str, email: str, password: str):
-        # Проверяем, существует ли уже пользователь с таким email
+    async def register(self, username: str, email: str, password: str):
         if self.repo.get_user_by_email(email):
             raise HTTPException(409, "Пользователь с таким email уже существует")
 
-        # Проверяем, существует ли уже пользователь с таким username
         if self.repo.get_user_by_username(username):
             raise HTTPException(409, "Пользователь с таким именем уже существует")
 
         pwd_hash, salt = self._hash_password(password)
-        return self.repo.create_user(username, email, pwd_hash, salt)
+        user = self.repo.create_user(username, email, pwd_hash, salt)
+
+        await rabbit_service.publish_user_registered(
+            user_id=str(user.id), email=user.email, username=user.username
+        )
+
+        return user
 
     def login(self, email: str, password: str) -> tuple:
         user = self.repo.get_user_by_email(email)

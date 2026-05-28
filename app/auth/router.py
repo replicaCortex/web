@@ -58,8 +58,8 @@ def get_service(db: Session = Depends(get_db)) -> AuthService:
     description="Создаёт нового пользователя с указанными username, email и паролем",
     responses={201: {"description": "Регистрация успешна"}, 409: _409_auth},
 )
-def register(data: RegisterDTO, svc: AuthService = Depends(get_service)):
-    svc.register(data.username, data.email, data.password)
+async def register(data: RegisterDTO, svc: AuthService = Depends(get_service)):
+    await svc.register(data.username, data.email, data.password)
     return {"message": "Регистрация успешна"}
 
 

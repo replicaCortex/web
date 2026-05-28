@@ -29,3 +29,16 @@ MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minio_secure_password_change_i
 MINIO_BUCKET = os.getenv("MINIO_BUCKET", "wp-labs-files")
 MINIO_USE_SSL = os.getenv("MINIO_USE_SSL", "false").lower() == "true"
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 10485760))
+
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
+RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
+RABBITMQ_USER = os.getenv("RABBITMQ_USER", "student")
+RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "student_secure_rabbit_pass_change_in_prod")
+QUEUE_USER_REGISTERED = os.getenv("QUEUE_USER_REGISTERED", "wp.auth.user.registered")
+
+SMTP_HOST = os.getenv("SMTP_HOST")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 465))
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASS = os.getenv("SMTP_PASS")
+SMTP_FROM = os.getenv("SMTP_FROM")
+SMTP_SECURE = os.getenv("SMTP_SECURE", "true").lower() == "true"
